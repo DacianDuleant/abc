@@ -1,0 +1,71 @@
+#include<LiquidCrystal.h>
+LiquidCrystal lcd(2, 3, 4, 5, 6, 7);//setam pinii pentru ecranul LCD 16x2 
+//declaram variabilele de care avem nevoie pentru realizarea codului
+int t1; //t1, t2 vor marca timpi in care vehiculul va trece prin fata celor doi senzori
+int t2;
+
+float T;// T va fi durata in care masina parcurge distanta dintre cei doi senzori
+
+int p1 = 0;//variabilele p1,p2 au rolul de a retine daca ambii senzori au fost parcursi/activati
+int p2 = 0;
+
+float dist = 5.0;//va fi variabila de distanta, valoarea ei se va modifica in cod functie de distanta
+                 //la care vor fi amplasati cei doi senzori
+float speed;
+
+int ir_s1 = A3;//variabilele ir_s1 si ir_s2 sunt variabilele atribuite celor doi senzori IR Proximity conectati la porturile A3 si A4
+int ir_s2 = A4;
+
+int buzzer = 2;//buzzer va fi variabila de iesire a buzzerului
+
+void setup(){
+  pinMode(ir_s1, INPUT);//setam variabilele in functie de rolul lor intrare/iesire
+  pinMode(ir_s2, INPUT);
+  pinMode(buzzer, OUTPUT);
+  
+  lcd.begin(16,2);//pentru inceput afisam cateva mesaje pentru a ne asigura ca deviceul functioneaza
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print(" Drive safe/ ");
+  lcd.setCursor(0,1);
+  lcd.print(" Condu prudent");
+  delay(2000);
+  lcd.clear();
+}
+
+void loop() {
+if(digitalRead (ir_s1) == LOW && p1==0){t1 = millis(); p1=1;}//citim primul senzor si atribuim lui t1 timpul la care vehiculul a ajuns la senzor
+                                                             // p1 va avea rolul de a retine ca vehiculull a trecut prin punctul 1
+
+if(digitalRead (ir_s2) == LOW && p2==0){t2 = millis(); p2=1;}//citim al doilea senzor si atribuim lui t2 timpul la care vehiculul a ajuns la senzor
+                                                             // p2 va avea rolul de aretine ca vehiculul a trecut prin punctul 2
+
+if (p1==1 && p2==1){
+     if(t1 > t2){T = t1 - t2;}//in cazul in care vehiculul a trecut mai intai prin p1(punctul senzorului 1) sau prin p2(punctul senzoruului p2) ne vom asigura ca T>=0
+else if(t2 > t1){T = t2 - t1;}
+ T=T/1000;//convertim milisecundele in secunde
+ speed=(dist/T)*3.6; //V=km/h realizam conversia din m/s in km/h folosind formula(v(m/s)*3600/1000=v(km/h))
+}
+
+if(speed==0){ //verificam daca viteza a fost masurata sau unul dintre senzori nu a fost atins
+lcd.setCursor(0, 1); 
+if(p1==0 && p2==0){lcd.print("Nici o masina setectata");}//daca nu a fost atins nici unul dintre puncte atunci vom afisa un mesaj
+                    else{lcd.print("Cauta...    ");} //daca mai trebuie sa fie atins unul atunci vom afisa mesajul ca device-ul inca cauta
+}
+else{
+    lcd.clear(); 
+    lcd.setCursor(0, 0); 
+    lcd.print("Viteza:");//afisam viteza pe ecranul LCD
+    lcd.print(speed,1);
+    lcd.print("Km/Hr  ");//exprimata in km/h
+    lcd.setCursor(0, 1); //mutam cursorul
+  if(speed > 50){lcd.print("  Amenda  "); digitalWrite(buzzer, HIGH);}//afisam un mesaj in caz ca anumite valori ale vitezei au fost depasite
+            else{lcd.print("  Viteza normala   "); }  
+  if(speed > 100){lcd.print("  Permis suspendat  "); digitalWrite(buzzer, HIGH);}
+    delay(3000);
+    digitalWrite(buzzer, LOW);//reinitializam toate valorile
+    speed = 0;
+    p1 = 0;
+    p2 = 0;    
+ }
+}
